@@ -17,3 +17,9 @@ WITH US is an Android app that helps deaf and hard-of-hearing people follow soci
 
 **محرر الإشارات | Sign editor.** `tools/sign-editor.html` صفحة يضبط فيها مترجم إشارة أو شخص أصم أصابع اليدين والوجه لكل حرف وكلمة، ثم ينسخ الملف الناتج. يوضع محتواه في `app/src/main/assets/overlay/signs.js` بالشكل `window.SIGNS = {...};`.
 A page where a sign-language interpreter or deaf reviewer sets finger, hand and face poses for each letter and word, then copies the exported file into `app/src/main/assets/overlay/signs.js` as `window.SIGNS = {...};`.
+
+---
+
+**قيود معروفة | Known limitations.** يعمل على أندرويد فقط. يشترط وجود ترجمة مكتوبة (CC) ظاهرة، وبعض التطبيقات ترسمها كصورة فلا تُقرأ. الإشارات الحالية غير مراجَعة. Android only. Needs visible on-screen captions (CC); some apps draw them as an image and cannot be read. Current signs are unreviewed.
+
+**للمساهمين | Contributors.** اقرأ [CONTRIBUTING.md](CONTRIBUTING.md) أولاً، خصوصاً قاعدة مراجعة الإشارات. Read [CONTRIBUTING.md](CONTRIBUTING.md) first, especially the rule about sign review. الرخصة | License: MIT.
