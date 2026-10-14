@@ -101,6 +101,7 @@ class OverlayController(private val service: AccessibilityService) {
 
         val minus = barButton("−") { setSize((sizePx * 0.8f).toInt()); showBarTemporarily() }
         val plus = barButton("+") { setSize((sizePx * 1.25f).toInt()); showBarTemporarily() }
+        val speed = barButton("⏩") { send("window.toggleSpeed()"); showBarTemporarily() }
         val hand = barButton("↔") { send("window.toggleHand()"); showBarTemporarily() }
         val fold = barButton("—") { collapse() }
         val b = LinearLayout(service).apply {
@@ -113,6 +114,7 @@ class OverlayController(private val service: AccessibilityService) {
             }
             addView(minus)
             addView(plus)
+            addView(speed)
             addView(hand)
             addView(fold)
         }

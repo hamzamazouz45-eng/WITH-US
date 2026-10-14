@@ -15,7 +15,7 @@
   .skin { fill: #e2ab82; stroke: #a8714a; stroke-width: 1.2; }
   .eye { fill: #2b2420; }
   .face { stroke: #2b2420; stroke-width: 2.2; stroke-linecap: round; opacity: .75; fill: none; }
-  .mover, .f1, .f2 { transform-origin: 0 0; transition: transform .2s ease-in-out; }
+  .mover, .f1, .f2 { transform-origin: 0 0; transition: transform var(--t, .14s) ease-in-out; }
 </style>
 <script src="signs.js"></script>
 </head>
@@ -31,6 +31,12 @@ const NEUTRAL_FACE = { brow: 0, mouth: 0.8 };
 
 let leftHanded = false;
 try { leftHanded = localStorage.getItem("lh") === "1"; } catch (e) {}
+// سرعة العرض: 1× أو 1.5× أو 2×
+const SPEEDS = [1, 1.5, 2];
+let speed = 1;
+try { const v = Number(localStorage.getItem("spd")); if (SPEEDS.includes(v)) speed = v; } catch (e) {}
+const applySpeed = () => document.documentElement.style.setProperty("--t", Math.max(0.07, 0.14 / speed) + "s");
+applySpeed();
 
 // ---------- الأفاتار ----------
 const NS = "http://www.w3.org/2000/svg";
@@ -101,14 +107,14 @@ function toFrames(text) {
       const w = normAr(raw).replace(/[^ء-ي]/g, "");
       if (!w) continue;
       const word = D.words.ar[w];
-      if (word) word.forEach((f) => out.push({ ...f, label: raw, ms: f.ms || 650 }));
-      else for (const ch of w) { const l = D.letters.ar[ch]; if (l) out.push({ ...l, label: raw + " · " + ch, ms: l.ms || 520 }); }
+      if (word) word.forEach((f) => out.push({ ...f, label: raw, ms: f.ms || 600 }));
+      else for (const ch of w) { const l = D.letters.ar[ch]; if (l) out.push({ ...l, label: raw + " · " + ch, ms: l.ms || 400 }); }
     } else {
       const w = raw.toLowerCase().replace(/[^a-z]/g, "");
       if (!w) continue;
       const word = D.words.en[w];
-      if (word) word.forEach((f) => out.push({ ...f, label: raw, ms: f.ms || 650 }));
-      else for (const ch of w) { const l = D.letters.en[ch]; if (l) out.push({ ...l, label: raw + " · " + ch.toUpperCase(), ms: l.ms || 520 }); }
+      if (word) word.forEach((f) => out.push({ ...f, label: raw, ms: f.ms || 600 }));
+      else for (const ch of w) { const l = D.letters.en[ch]; if (l) out.push({ ...l, label: raw + " · " + ch.toUpperCase(), ms: l.ms || 400 }); }
     }
     out.push({ R: rest, label: raw, ms: 250 });
   }
@@ -124,7 +130,7 @@ async function play() {
   while (queue.length) {
     // إن تراكمت الإطارات نسرّع حتى لا يتأخر الأفاتار عن الفيديو
     if (queue.length > 80) queue.splice(0, queue.length - 80);
-    const k = queue.length > 50 ? 0.4 : queue.length > 25 ? 0.6 : 1;
+    const k = (queue.length > 40 ? 0.35 : queue.length > 25 ? 0.5 : queue.length > 12 ? 0.7 : 1) / speed;
     const fr = queue.shift();
     show(fr);
     labelEl.textContent = fr.label;
@@ -136,6 +142,12 @@ async function play() {
 
 window.onCaption = (text) => { queue.push(...toFrames(String(text))); play(); };
 window.onHint = (text) => { if (!playing) labelEl.textContent = String(text); };
+window.toggleSpeed = () => {
+  speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
+  try { localStorage.setItem("spd", String(speed)); } catch (e) {}
+  applySpeed();
+  labelEl.textContent = "×" + speed;
+};
 window.toggleHand = () => {
   leftHanded = !leftHanded;
   try { localStorage.setItem("lh", leftHanded ? "1" : "0"); } catch (e) {}
