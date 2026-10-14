@@ -1,10 +1,9 @@
 # وصلة-WITHUS
+وصلةتطبيق أندرويد يساعد الصم وضعاف السمع على متابعة مقاطع التواصل الاجتماعي. يقرأ الترجمة المكتوبة (CC) الظاهرة على الشاشة، ويعرضها بلغة الإشارة والهجاء الإصبعي في نافذة عائمة فوق أي تطبيق، بأفاتار من رأس ويدين
+يدعم العربية والإنجليزية
+_________________________________________
 
-**العربية**
-وصلة تطبيق أندرويد يساعد الصم وضعاف السمع على متابعة مقاطع التواصل الاجتماعي. يقرأ الترجمة المكتوبة (CC) الظاهرة على الشاشة، ويعرضها بلغة الإشارة والهجاء الإصبعي في نافذة عائمة فوق أي تطبيق، بأفاتار من رأس ويدين. يدعم العربية والإنجليزية.
-
-**English**
-WITH US is an Android app that helps deaf and hard-of-hearing people follow social media videos. It reads the on-screen captions (CC) and shows them as sign language and fingerspelling in a floating window above any app, using an avatar made of a head and two hands. Arabic and English are supported.
+WITH US is an Android app that helps deaf and hard-of-hearing people follow social media videos. It reads the on-screen captions (CC) and shows them as sign language and fingerspelling in a floating window above any app, using an avatar made of a head and two hands. Arabic and English are supported
 
 ---
 
