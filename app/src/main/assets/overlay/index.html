@@ -17,46 +17,20 @@
   .face { stroke: #2b2420; stroke-width: 2.2; stroke-linecap: round; opacity: .75; fill: none; }
   .mover, .f1, .f2 { transform-origin: 0 0; transition: transform .2s ease-in-out; }
 </style>
+<script src="signs.js"></script>
 </head>
 <body>
 <div id="stage"></div>
 <div id="label">…</div>
 <script>
-// أوضاع اليدين مؤقتة وتقريبية، ولم يراجعها مترجم إشارة. استبدلها بأوضاع صحيحة قبل أي استخدام حقيقي.
-const S = {
-  fist:[1,1,1,1,1], open:[0,0,0,0,0], point:[1,0,1,1,1], V:[1,0,0,1,1], L:[0,0,1,1,1],
-  thumb:[0,1,1,1,1], pinky:[1,1,1,1,0], Y:[0,1,1,1,0], three:[0,0,0,0,1],
-  claw:[.5,.5,.5,.5,.5], O:[.6,.6,.6,.6,.6], flat:[.2,0,0,0,0], hook:[1,.5,1,1,1], four:[1,0,0,0,0]
-};
-const pose = (shape, r = 0, x = 0, y = 0) => ({ f: S[shape], r, x, y });
+// بيانات الإشارات في signs.js. شكل الإطار: { R: يد, L: يد (اختياري), face: {brow, mouth} (اختياري) }
+// اليد: { f: [إبهام, سبابة, وسطى, بنصر, خنصر] بين 0 (ممدود) و1 (مثني), r: دوران, x, y: موضع }
+const D = window.SIGNS;
+const rest = D.rest;
+const NEUTRAL_FACE = { brow: 0, mouth: 0.8 };
 
-const ar = {
-  "ا":pose("point",0),"ب":pose("four",0),"ت":pose("V",0),"ث":pose("three",0),"ج":pose("hook",0),
-  "ح":pose("claw",0),"خ":pose("claw",20),"د":pose("L",0),"ذ":pose("L",25),"ر":pose("hook",20),
-  "ز":pose("hook",-20),"س":pose("V",30),"ش":pose("open",0),"ص":pose("flat",0),"ض":pose("flat",30),
-  "ط":pose("thumb",0),"ظ":pose("thumb",30),"ع":pose("O",0),"غ":pose("O",30),"ف":pose("O",-20),
-  "ق":pose("Y",0),"ك":pose("pinky",0),"ل":pose("L",-20),"م":pose("fist",0),"ن":pose("fist",25),
-  "ه":pose("open",25),"و":pose("O",15),"ي":pose("Y",25),"ء":pose("pinky",30)
-};
-const en = {
-  a:pose("fist",0),b:pose("four",0),c:pose("claw",0),d:pose("L",0),e:pose("claw",25),f:pose("O",0),
-  g:pose("point",-25),h:pose("V",-25),i:pose("pinky",0),j:pose("pinky",30),k:pose("V",15),l:pose("L",-20),
-  m:pose("three",20),n:pose("V",20),o:pose("O",0),p:pose("point",25),q:pose("L",25),r:pose("V",-10),
-  s:pose("fist",15),t:pose("thumb",-15),u:pose("V",0),v:pose("V",10),w:pose("three",0),x:pose("hook",0),
-  y:pose("Y",0),z:pose("point",-15)
-};
-const arWords = {
-  "مرحبا":[{R:pose("open",-15,10,-60)},{R:pose("open",15,10,-60)}],
-  "شكرا":[{R:pose("flat",0,0,-70)},{R:pose("flat",0,15,-40)}],
-  "نعم":[{R:pose("fist",0,10,-30)},{R:pose("fist",20,10,-20)}],
-  "لا":[{R:pose("point",-20,10,-40)},{R:pose("point",20,10,-40)}]
-};
-const enWords = {
-  "hello":arWords["مرحبا"], "hi":arWords["مرحبا"],
-  "thanks":arWords["شكرا"], "thank":arWords["شكرا"],
-  "yes":arWords["نعم"], "no":arWords["لا"]
-};
-const rest = { f: [.35,.35,.35,.35,.35], r: 0, x: 0, y: 40 };
+let leftHanded = false;
+try { leftHanded = localStorage.getItem("lh") === "1"; } catch (e) {}
 
 // ---------- الأفاتار ----------
 const NS = "http://www.w3.org/2000/svg";
@@ -92,11 +66,26 @@ const head = el("g", {}, svg);
 el("ellipse", { cx:120, cy:52, rx:36, ry:42, class:"skin" }, head);
 el("circle", { cx:107, cy:46, r:3.5, class:"eye" }, head);
 el("circle", { cx:133, cy:46, r:3.5, class:"eye" }, head);
-el("path", { d:"M108 68 Q120 76 132 68", class:"face" }, head);
-el("path", { d:"M100 34 Q120 22 140 34", class:"face" }, head);
+const mouthEl = el("path", { class:"face" }, head);
+const browEl = el("path", { class:"face" }, head);
+function setFace(f) {
+  const b = (f && typeof f.brow === "number") ? f.brow : NEUTRAL_FACE.brow;   // -1 منخفض .. 1 مرفوع
+  const m = (f && typeof f.mouth === "number") ? f.mouth : NEUTRAL_FACE.mouth; // -1 عابس .. 1 مبتسم
+  browEl.setAttribute("d", `M100 ${34 - b * 8} Q120 ${22 - b * 10} 140 ${34 - b * 8}`);
+  mouthEl.setAttribute("d", `M108 68 Q120 ${68 + m * 10} 132 68`);
+}
 const layer = el("g", {}, svg);
 const handL = makeHand(layer, true), handR = makeHand(layer, false);
-const show = (fr) => { setPose(handR, fr.R, 160); setPose(handL, fr.L || rest, 80); };
+
+// اليد الأساسية تظهر يميناً، أو يساراً لمن يفضّل ذلك
+function show(fr) {
+  const dom = fr.R || rest, sub = fr.L || rest;
+  const right = leftHanded ? sub : dom;
+  const left = leftHanded ? dom : sub;
+  setPose(handR, right, 160);
+  setPose(handL, left, 80);
+  setFace(fr.face);
+}
 const toRest = () => show({ R: rest, L: rest });
 toRest();
 
@@ -111,13 +100,15 @@ function toFrames(text) {
     if (/[؀-ۿ]/.test(raw)) {
       const w = normAr(raw).replace(/[^ء-ي]/g, "");
       if (!w) continue;
-      if (arWords[w]) arWords[w].forEach((f) => out.push({ ...f, label: raw, ms: 650 }));
-      else for (const ch of w) if (ar[ch]) out.push({ R: ar[ch], label: raw + " · " + ch, ms: 520 });
+      const word = D.words.ar[w];
+      if (word) word.forEach((f) => out.push({ ...f, label: raw, ms: f.ms || 650 }));
+      else for (const ch of w) { const l = D.letters.ar[ch]; if (l) out.push({ ...l, label: raw + " · " + ch, ms: l.ms || 520 }); }
     } else {
       const w = raw.toLowerCase().replace(/[^a-z]/g, "");
       if (!w) continue;
-      if (enWords[w]) enWords[w].forEach((f) => out.push({ ...f, label: raw, ms: 650 }));
-      else for (const ch of w) if (en[ch]) out.push({ R: en[ch], label: raw + " · " + ch.toUpperCase(), ms: 520 });
+      const word = D.words.en[w];
+      if (word) word.forEach((f) => out.push({ ...f, label: raw, ms: f.ms || 650 }));
+      else for (const ch of w) { const l = D.letters.en[ch]; if (l) out.push({ ...l, label: raw + " · " + ch.toUpperCase(), ms: l.ms || 520 }); }
     }
     out.push({ R: rest, label: raw, ms: 250 });
   }
@@ -145,6 +136,12 @@ async function play() {
 
 window.onCaption = (text) => { queue.push(...toFrames(String(text))); play(); };
 window.onHint = (text) => { if (!playing) labelEl.textContent = String(text); };
+window.toggleHand = () => {
+  leftHanded = !leftHanded;
+  try { localStorage.setItem("lh", leftHanded ? "1" : "0"); } catch (e) {}
+  toRest();
+  labelEl.textContent = leftHanded ? "◀ يسار" : "يمين ▶";
+};
 </script>
 </body>
 </html>

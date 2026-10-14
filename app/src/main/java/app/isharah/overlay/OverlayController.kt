@@ -80,6 +80,7 @@ class OverlayController(private val service: AccessibilityService) {
 
         val w = WebView(service).apply {
             settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
             setBackgroundColor(Color.TRANSPARENT)
             isVerticalScrollBarEnabled = false
             isHorizontalScrollBarEnabled = false
@@ -100,6 +101,7 @@ class OverlayController(private val service: AccessibilityService) {
 
         val minus = barButton("−") { setSize((sizePx * 0.8f).toInt()); showBarTemporarily() }
         val plus = barButton("+") { setSize((sizePx * 1.25f).toInt()); showBarTemporarily() }
+        val hand = barButton("↔") { send("window.toggleHand()"); showBarTemporarily() }
         val fold = barButton("—") { collapse() }
         val b = LinearLayout(service).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -111,6 +113,7 @@ class OverlayController(private val service: AccessibilityService) {
             }
             addView(minus)
             addView(plus)
+            addView(hand)
             addView(fold)
         }
         bar = b
