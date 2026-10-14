@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Isharah</string>
-    <string name="service_description">Reads on-screen captions and shows them in sign language in a floating window. Everything is processed on your phone, and the app has no internet permission.</string>
+    <string name="app_name">WITH US</string>
+    <string name="service_description">WITH US helps deaf and hard-of-hearing people follow social media videos: it reads the on-screen captions and shows them in sign language in a floating window above any app. Everything is processed on your phone, and the app has no internet permission.</string>
     <string name="status_on">Service is running ✓</string>
     <string name="status_off">Service is off. Follow the steps below.</string>
-    <string name="steps">1. Tap \"Open accessibility settings\" and turn on the \"Isharah\" service.\n\n2. If the option is greyed out: tap \"App info\", then the ⋮ menu at the top, then \"Allow restricted settings\". Then repeat step 1.\n\n3. Open any video and turn on captions (CC). A floating window with the avatar appears and signs the words. Drag it with your finger, resize it with ⤢, and shrink it with —.</string>
+    <string name="steps">1. Tap \"Open accessibility settings\" and turn on the \"WITH US\" service.\n\n2. If the option is greyed out: tap \"App info\", then the ⋮ menu at the top, then \"Allow restricted settings\". Then repeat step 1.\n\n3. Open any video and turn on captions (CC). A floating window with the avatar appears and signs the words. Drag it with your finger, resize it with ⤢, and shrink it with —.</string>
     <string name="btn_access">Open accessibility settings</string>
     <string name="btn_appinfo">App info</string>
     <string name="btn_toggle">Show / hide floating window</string>

@@ -31,7 +31,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Isharah-debug-apk
+          name: WithUs-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
 
       - name: Publish release with the APK
