@@ -29,14 +29,26 @@ jobs:
       - name: Build debug APK
         run: gradle assembleDebug --stacktrace
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: WithUs-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+      # إصدار واحد ثابت اسمه latest: نحرّك وسمه إلى آخر commit ثم نحدّث ملفه
+      - name: Move the latest tag
+        run: |
+          git tag -f latest
+          git push -f origin latest
 
-      - name: Publish release with the APK
+      - name: Publish the single release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}
-          name: Build ${{ github.run_number }}
+          tag_name: latest
+          name: "وصلة-WITHUS (آخر إصدار | latest)"
+          make_latest: true
+          overwrite_files: true
           files: app/build/outputs/apk/debug/app-debug.apk
+
+      # حذف كل الإصدارات القديمة والوسوم الخاصة بها، والإبقاء على latest فقط
+      - name: Delete old releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release list --limit 200 --json tagName --jq '.[].tagName' \
+            | grep -v '^latest$' \
+            | while read -r tag; do gh release delete "$tag" --cleanup-tag --yes; done || true
