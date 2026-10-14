@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">إشارة</string>
+    <string name="service_description">يقرأ الترجمة المكتوبة الظاهرة على الشاشة ويعرضها بلغة الإشارة في نافذة عائمة. تتم المعالجة على هاتفك فقط، والتطبيق بلا إذن إنترنت.</string>
+    <string name="status_on">الخدمة تعمل ✓</string>
+    <string name="status_off">الخدمة غير مفعّلة. اتبع الخطوات أدناه.</string>
+    <string name="steps">1. اضغط «فتح إعدادات إمكانية الوصول» وفعّل خدمة «إشارة».\n\n2. إن كان الخيار رمادياً: اضغط «معلومات التطبيق»، ثم القائمة ⋮ في الأعلى، ثم «السماح بالإعدادات المقيّدة». بعدها ارجع إلى الخطوة 1.\n\n3. افتح أي فيديو وفعّل الترجمة (CC). تظهر نافذة عائمة بالأفاتار وتؤدّي الكلمات. اسحبها بإصبعك، وغيّر حجمها بالزر ⤢، وصغّرها بالزر —.</string>
+    <string name="btn_access">فتح إعدادات إمكانية الوصول</string>
+    <string name="btn_appinfo">معلومات التطبيق</string>
+    <string name="btn_toggle">إظهار / إخفاء النافذة العائمة</string>
+    <string name="privacy">الخصوصية: التطبيق بلا إذن إنترنت، فلا يرسل شيئاً خارج هاتفك. يقرأ النص الظاهر على الشاشة ليبحث عن الترجمة فقط، ولا يحفظه.</string>
+    <string name="diag_title">التشخيص</string>
+    <string name="diag_hint">إن لم تُقرأ الترجمة في تطبيق معيّن، اضغط «تحديث التشخيص» بعد تشغيل الفيديو، ثم «نسخ التشخيص» وأرسل النص لمطوّر التطبيق.</string>
+    <string name="btn_diag">تحديث التشخيص</string>
+    <string name="btn_copy">نسخ التشخيص</string>
+    <string name="diag_empty">لا توجد بيانات بعد. شغّل فيديو بترجمة ثم حدّث.</string>
+    <string name="service_off">فعّل الخدمة أولاً</string>
+    <string name="copied">تم النسخ</string>
+    <string name="hint_no_captions">فعّل الترجمة (CC) في الفيديو</string>
+</resources>

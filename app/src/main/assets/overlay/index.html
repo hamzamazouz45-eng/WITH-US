@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; height: 100%; }
+  body { display: flex; flex-direction: column; font-family: sans-serif; }
+  #stage { flex: 1 1 auto; min-height: 0; }
+  svg { width: 100%; height: 100%; display: block; }
+  #label {
+    flex: 0 0 auto; text-align: center; color: #fff; font-weight: 700; font-size: 15px;
+    min-height: 22px; padding: 2px 4px 0; direction: rtl; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .skin { fill: #e2ab82; stroke: #a8714a; stroke-width: 1.2; }
+  .eye { fill: #2b2420; }
+  .face { stroke: #2b2420; stroke-width: 2.2; stroke-linecap: round; opacity: .75; fill: none; }
+  .mover, .f1, .f2 { transform-origin: 0 0; transition: transform .2s ease-in-out; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="label">…</div>
+<script>
+// أوضاع اليدين مؤقتة وتقريبية، ولم يراجعها مترجم إشارة. استبدلها بأوضاع صحيحة قبل أي استخدام حقيقي.
+const S = {
+  fist:[1,1,1,1,1], open:[0,0,0,0,0], point:[1,0,1,1,1], V:[1,0,0,1,1], L:[0,0,1,1,1],
+  thumb:[0,1,1,1,1], pinky:[1,1,1,1,0], Y:[0,1,1,1,0], three:[0,0,0,0,1],
+  claw:[.5,.5,.5,.5,.5], O:[.6,.6,.6,.6,.6], flat:[.2,0,0,0,0], hook:[1,.5,1,1,1], four:[1,0,0,0,0]
+};
+const pose = (shape, r = 0, x = 0, y = 0) => ({ f: S[shape], r, x, y });
+
+const ar = {
+  "ا":pose("point",0),"ب":pose("four",0),"ت":pose("V",0),"ث":pose("three",0),"ج":pose("hook",0),
+  "ح":pose("claw",0),"خ":pose("claw",20),"د":pose("L",0),"ذ":pose("L",25),"ر":pose("hook",20),
+  "ز":pose("hook",-20),"س":pose("V",30),"ش":pose("open",0),"ص":pose("flat",0),"ض":pose("flat",30),
+  "ط":pose("thumb",0),"ظ":pose("thumb",30),"ع":pose("O",0),"غ":pose("O",30),"ف":pose("O",-20),
+  "ق":pose("Y",0),"ك":pose("pinky",0),"ل":pose("L",-20),"م":pose("fist",0),"ن":pose("fist",25),
+  "ه":pose("open",25),"و":pose("O",15),"ي":pose("Y",25),"ء":pose("pinky",30)
+};
+const en = {
+  a:pose("fist",0),b:pose("four",0),c:pose("claw",0),d:pose("L",0),e:pose("claw",25),f:pose("O",0),
+  g:pose("point",-25),h:pose("V",-25),i:pose("pinky",0),j:pose("pinky",30),k:pose("V",15),l:pose("L",-20),
+  m:pose("three",20),n:pose("V",20),o:pose("O",0),p:pose("point",25),q:pose("L",25),r:pose("V",-10),
+  s:pose("fist",15),t:pose("thumb",-15),u:pose("V",0),v:pose("V",10),w:pose("three",0),x:pose("hook",0),
+  y:pose("Y",0),z:pose("point",-15)
+};
+const arWords = {
+  "مرحبا":[{R:pose("open",-15,10,-60)},{R:pose("open",15,10,-60)}],
+  "شكرا":[{R:pose("flat",0,0,-70)},{R:pose("flat",0,15,-40)}],
+  "نعم":[{R:pose("fist",0,10,-30)},{R:pose("fist",20,10,-20)}],
+  "لا":[{R:pose("point",-20,10,-40)},{R:pose("point",20,10,-40)}]
+};
+const enWords = {
+  "hello":arWords["مرحبا"], "hi":arWords["مرحبا"],
+  "thanks":arWords["شكرا"], "thank":arWords["شكرا"],
+  "yes":arWords["نعم"], "no":arWords["لا"]
+};
+const rest = { f: [.35,.35,.35,.35,.35], r: 0, x: 0, y: 40 };
+
+// ---------- الأفاتار ----------
+const NS = "http://www.w3.org/2000/svg";
+const el = (n, a = {}, p) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+const FINGERS = [
+  {dx:-17,dy:6,len:[14,12],base:-35},{dx:-9,dy:-12,len:[18,14],base:0},{dx:-1,dy:-14,len:[20,15],base:0},
+  {dx:7,dy:-12,len:[18,14],base:0},{dx:14,dy:-8,len:[14,11],base:5}
+];
+function makeHand(parent, mirror) {
+  const mover = el("g", { class: "mover" }, el("g", {}, parent));
+  const flip = el("g", { transform: mirror ? "scale(-1,1)" : "" }, mover);
+  el("rect", { x:-20, y:-12, width:40, height:40, rx:14, class:"skin" }, flip);
+  const fingers = FINGERS.map((f) => {
+    const g1 = el("g", { class: "f1" }, flip);
+    el("rect", { x:-3.5, y:-f.len[0], width:7, height:f.len[0], rx:3.5, class:"skin" }, g1);
+    const g2 = el("g", { class: "f2" }, g1);
+    el("rect", { x:-3.2, y:-f.len[1], width:6.4, height:f.len[1], rx:3.2, class:"skin" }, g2);
+    return { g1, g2, base: f.base };
+  });
+  return { mover, fingers, mirror };
+}
+function setPose(h, p, ox) {
+  const s = h.mirror ? -1 : 1;
+  h.mover.style.transform = `translate(${ox + p.x * s}px, ${90 + p.y}px) rotate(${p.r * s}deg)`;
+  h.fingers.forEach((fg, i) => {
+    const c = p.f[i];
+    fg.g1.style.transform = `translate(${FINGERS[i].dx}px, ${FINGERS[i].dy}px) rotate(${fg.base + c * 70}deg)`;
+    fg.g2.style.transform = `translate(0px, ${-FINGERS[i].len[0]}px) rotate(${c * 85}deg)`;
+  });
+}
+const svg = el("svg", { viewBox: "0 0 240 200", preserveAspectRatio: "xMidYMid meet" }, document.getElementById("stage"));
+const head = el("g", {}, svg);
+el("ellipse", { cx:120, cy:52, rx:36, ry:42, class:"skin" }, head);
+el("circle", { cx:107, cy:46, r:3.5, class:"eye" }, head);
+el("circle", { cx:133, cy:46, r:3.5, class:"eye" }, head);
+el("path", { d:"M108 68 Q120 76 132 68", class:"face" }, head);
+el("path", { d:"M100 34 Q120 22 140 34", class:"face" }, head);
+const layer = el("g", {}, svg);
+const handL = makeHand(layer, true), handR = makeHand(layer, false);
+const show = (fr) => { setPose(handR, fr.R, 160); setPose(handL, fr.L || rest, 80); };
+const toRest = () => show({ R: rest, L: rest });
+toRest();
+
+// ---------- التحويل والتشغيل ----------
+const labelEl = document.getElementById("label");
+const normAr = (t) => t.replace(/[ً-ٰٟـ]/g, "")
+  .replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/[ؤئ]/g, "ء");
+
+function toFrames(text) {
+  const out = [];
+  for (const raw of text.split(/\s+/).filter(Boolean)) {
+    if (/[؀-ۿ]/.test(raw)) {
+      const w = normAr(raw).replace(/[^ء-ي]/g, "");
+      if (!w) continue;
+      if (arWords[w]) arWords[w].forEach((f) => out.push({ ...f, label: raw, ms: 650 }));
+      else for (const ch of w) if (ar[ch]) out.push({ R: ar[ch], label: raw + " · " + ch, ms: 520 });
+    } else {
+      const w = raw.toLowerCase().replace(/[^a-z]/g, "");
+      if (!w) continue;
+      if (enWords[w]) enWords[w].forEach((f) => out.push({ ...f, label: raw, ms: 650 }));
+      else for (const ch of w) if (en[ch]) out.push({ R: en[ch], label: raw + " · " + ch.toUpperCase(), ms: 520 });
+    }
+    out.push({ R: rest, label: raw, ms: 250 });
+  }
+  return out;
+}
+
+let queue = [], playing = false;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function play() {
+  if (playing) return;
+  playing = true;
+  while (queue.length) {
+    // إن تراكمت الإطارات نسرّع حتى لا يتأخر الأفاتار عن الفيديو
+    if (queue.length > 80) queue.splice(0, queue.length - 80);
+    const k = queue.length > 50 ? 0.4 : queue.length > 25 ? 0.6 : 1;
+    const fr = queue.shift();
+    show(fr);
+    labelEl.textContent = fr.label;
+    await sleep(fr.ms * k);
+  }
+  toRest();
+  playing = false;
+}
+
+window.onCaption = (text) => { queue.push(...toFrames(String(text))); play(); };
+window.onHint = (text) => { if (!playing) labelEl.textContent = String(text); };
+</script>
+</body>
+</html>
