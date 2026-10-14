@@ -12,3 +12,8 @@ WITH US is an Android app that helps deaf and hard-of-hearing people follow soci
 - **الخصوصية | Privacy.** التطبيق بلا إذن إنترنت (راجع `AndroidManifest.xml`). يقرأ نص الشاشة عبر خدمة إمكانية الوصول ليبحث عن الترجمة فقط، ولا يحفظه. The app has no internet permission. It scans on-screen text through an accessibility service only to find captions, and stores nothing.
 - **التثبيت | Install.** حمّل `app-debug.apk` من صفحة Releases ثم افتح التطبيق واتبع الخطوات. Download `app-debug.apk` from Releases, open the app and follow the steps.
 - **البناء | Build.** يتم تلقائياً على GitHub Actions عند كل push إلى `main`. Built automatically by GitHub Actions on every push to `main`.
+
+---
+
+**محرر الإشارات | Sign editor.** `tools/sign-editor.html` صفحة يضبط فيها مترجم إشارة أو شخص أصم أصابع اليدين والوجه لكل حرف وكلمة، ثم ينسخ الملف الناتج. يوضع محتواه في `app/src/main/assets/overlay/signs.js` بالشكل `window.SIGNS = {...};`.
+A page where a sign-language interpreter or deaf reviewer sets finger, hand and face poses for each letter and word, then copies the exported file into `app/src/main/assets/overlay/signs.js` as `window.SIGNS = {...};`.

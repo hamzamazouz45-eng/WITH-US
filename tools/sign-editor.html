@@ -1,0 +1,388 @@
+<title>محرر الإشارات</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<style>
+/* التصميم: أداة عمل بعمود واحد للهاتف. المعاينة ثابتة في الأعلى، وتحتها اختيار الإدخال ثم المنزلقات ثم التصدير. */
+:root {
+  --bg: #eef3f2; --surface: #ffffff; --stage: #dbe8e6; --fg: #14282b; --muted: #587073;
+  --line: #c6d6d4; --accent: #0b7a75; --accent-fg: #ffffff; --soft: #e1efed;
+  --skin: #e2ab82; --skin-line: #a8714a; --ink: #2b2420; --ok: #1b7f3b; --warn-bg: #fff3d6; --warn-fg: #6b4a00;
+  --font-display: "Readex Pro", system-ui, sans-serif; --font-body: "IBM Plex Sans Arabic", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1a1c; --surface: #172629; --stage: #1d3236; --fg: #e4f0ee; --muted: #93aeb0; --line: #2b4448;
+    --accent: #3cc4bb; --accent-fg: #06201f; --soft: #1f3a3e; --skin: #d9a47c; --skin-line: #8f5d3b; --ink: #1c1612;
+    --ok: #5fd68a; --warn-bg: #3a2f10; --warn-fg: #f2d894; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1a1c; --surface: #172629; --stage: #1d3236; --fg: #e4f0ee; --muted: #93aeb0; --line: #2b4448;
+  --accent: #3cc4bb; --accent-fg: #06201f; --soft: #1f3a3e; --skin: #d9a47c; --skin-line: #8f5d3b; --ink: #1c1612;
+  --ok: #5fd68a; --warn-bg: #3a2f10; --warn-fg: #f2d894; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.55; direction: rtl; margin: 0;
+  padding-block: 12px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+h1 { font-family: var(--font-display); font-size: 1.4rem; margin: 0; font-weight: 600; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-size: 1rem; margin: 0; font-weight: 600; }
+.sub { color: var(--muted); font-size: .9rem; margin: 2px 0 0; }
+.preview { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--stage); border: 1px solid var(--line); border-radius: 16px; padding: 4px 8px 6px; }
+.preview svg { width: 100%; max-width: 250px; height: auto; display: block; margin: 0 auto; }
+#status { text-align: center; font-family: var(--font-display); font-weight: 600; min-height: 1.6em; }
+.skin { fill: var(--skin); stroke: var(--skin-line); stroke-width: 1.2; }
+.eye { fill: var(--ink); }
+.face { stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; opacity: .75; fill: none; }
+.mover, .f1, .f2 { transform-origin: 0 0; transition: transform .15s ease-in-out; }
+@media (prefers-reduced-motion: reduce) { .mover, .f1, .f2 { transition: none; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.seg { display: flex; gap: 6px; flex-wrap: wrap; }
+button, select, input[type=text], textarea { font: inherit; color: var(--fg); }
+button { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 12px; min-height: 44px; cursor: pointer; font-weight: 500; }
+button[aria-pressed="true"], button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+button.danger { color: #b3261e; }
+button:disabled { opacity: .45; cursor: default; }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 6px; }
+.grid button { padding: 4px 0; font-family: var(--font-display); font-size: 1.1rem; position: relative; }
+.grid button.done::after { content: "✓"; position: absolute; top: 0; left: 4px; font-size: .7rem; color: var(--ok); }
+.grid button[aria-pressed="true"].done::after { color: var(--accent-fg); }
+.row { display: grid; grid-template-columns: 5.2rem 1fr 2.6rem; gap: 8px; align-items: center; }
+.row output { font-variant-numeric: tabular-nums; text-align: center; color: var(--muted); font-size: .85rem; }
+input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; }
+select, input[type=text], textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-height: 44px; width: 100%; }
+textarea { min-height: 120px; direction: ltr; font-family: ui-monospace, monospace; font-size: .75rem; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.note { background: var(--warn-bg); color: var(--warn-fg); border-radius: 10px; padding: 8px 10px; font-size: .88rem; }
+.muted { color: var(--muted); font-size: .88rem; }
+label.check { display: flex; gap: 8px; align-items: center; min-height: 44px; }
+label.check input { width: 22px; height: 22px; accent-color: var(--accent); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+</style>
+
+<main>
+  <header>
+    <h1>محرر الإشارات</h1>
+    <p class="sub">اضبط أصابع اليدين والوجه لكل حرف وكلمة، وشاهد النتيجة فوراً، ثم انسخ الملف وأرسله لمطوّر وصلة.</p>
+  </header>
+
+  <section class="preview" aria-live="polite">
+    <div id="stage"></div>
+    <div id="status">جاهز</div>
+  </section>
+
+  <section class="panel">
+    <h2>ماذا تريد أن تعدّل؟</h2>
+    <div class="seg" id="langSeg"></div>
+    <div class="seg" id="kindSeg"></div>
+    <div id="picker"></div>
+  </section>
+
+  <section class="panel" id="framesPanel"></section>
+  <section class="panel" id="handsPanel"></section>
+  <section class="panel" id="facePanel"></section>
+  <section class="panel" id="reviewPanel"></section>
+  <section class="panel" id="exportPanel"></section>
+</main>
+
+<script>
+const SHAPES = {"fist":[1,1,1,1,1],"open":[0,0,0,0,0],"point":[1,0,1,1,1],"V":[1,0,0,1,1],"L":[0,0,1,1,1],"thumb":[0,1,1,1,1],"pinky":[1,1,1,1,0],"Y":[0,1,1,1,0],"three":[0,0,0,0,1],"claw":[0.5,0.5,0.5,0.5,0.5],"O":[0.6,0.6,0.6,0.6,0.6],"flat":[0.2,0,0,0,0],"hook":[1,0.5,1,1,1],"four":[1,0,0,0,0]};
+const DEFAULT = {"version":2,"verified":false,"rest":{"f":[0.35,0.35,0.35,0.35,0.35],"r":0,"x":0,"y":40},"letters":{"ar":{"ا":{"R":{"f":[1,0,1,1,1],"r":0,"x":0,"y":0}},"ب":{"R":{"f":[1,0,0,0,0],"r":0,"x":0,"y":0}},"ت":{"R":{"f":[1,0,0,1,1],"r":0,"x":0,"y":0}},"ث":{"R":{"f":[0,0,0,0,1],"r":0,"x":0,"y":0}},"ج":{"R":{"f":[1,0.5,1,1,1],"r":0,"x":0,"y":0}},"ح":{"R":{"f":[0.5,0.5,0.5,0.5,0.5],"r":0,"x":0,"y":0}},"خ":{"R":{"f":[0.5,0.5,0.5,0.5,0.5],"r":20,"x":0,"y":0}},"د":{"R":{"f":[0,0,1,1,1],"r":0,"x":0,"y":0}},"ذ":{"R":{"f":[0,0,1,1,1],"r":25,"x":0,"y":0}},"ر":{"R":{"f":[1,0.5,1,1,1],"r":20,"x":0,"y":0}},"ز":{"R":{"f":[1,0.5,1,1,1],"r":-20,"x":0,"y":0}},"س":{"R":{"f":[1,0,0,1,1],"r":30,"x":0,"y":0}},"ش":{"R":{"f":[0,0,0,0,0],"r":0,"x":0,"y":0}},"ص":{"R":{"f":[0.2,0,0,0,0],"r":0,"x":0,"y":0}},"ض":{"R":{"f":[0.2,0,0,0,0],"r":30,"x":0,"y":0}},"ط":{"R":{"f":[0,1,1,1,1],"r":0,"x":0,"y":0}},"ظ":{"R":{"f":[0,1,1,1,1],"r":30,"x":0,"y":0}},"ع":{"R":{"f":[0.6,0.6,0.6,0.6,0.6],"r":0,"x":0,"y":0}},"غ":{"R":{"f":[0.6,0.6,0.6,0.6,0.6],"r":30,"x":0,"y":0}},"ف":{"R":{"f":[0.6,0.6,0.6,0.6,0.6],"r":-20,"x":0,"y":0}},"ق":{"R":{"f":[0,1,1,1,0],"r":0,"x":0,"y":0}},"ك":{"R":{"f":[1,1,1,1,0],"r":0,"x":0,"y":0}},"ل":{"R":{"f":[0,0,1,1,1],"r":-20,"x":0,"y":0}},"م":{"R":{"f":[1,1,1,1,1],"r":0,"x":0,"y":0}},"ن":{"R":{"f":[1,1,1,1,1],"r":25,"x":0,"y":0}},"ه":{"R":{"f":[0,0,0,0,0],"r":25,"x":0,"y":0}},"و":{"R":{"f":[0.6,0.6,0.6,0.6,0.6],"r":15,"x":0,"y":0}},"ي":{"R":{"f":[0,1,1,1,0],"r":25,"x":0,"y":0}},"ء":{"R":{"f":[1,1,1,1,0],"r":30,"x":0,"y":0}}},"en":{"a":{"R":{"f":[1,1,1,1,1],"r":0,"x":0,"y":0}},"b":{"R":{"f":[1,0,0,0,0],"r":0,"x":0,"y":0}},"c":{"R":{"f":[0.5,0.5,0.5,0.5,0.5],"r":0,"x":0,"y":0}},"d":{"R":{"f":[0,0,1,1,1],"r":0,"x":0,"y":0}},"e":{"R":{"f":[0.5,0.5,0.5,0.5,0.5],"r":25,"x":0,"y":0}},"f":{"R":{"f":[0.6,0.6,0.6,0.6,0.6],"r":0,"x":0,"y":0}},"g":{"R":{"f":[1,0,1,1,1],"r":-25,"x":0,"y":0}},"h":{"R":{"f":[1,0,0,1,1],"r":-25,"x":0,"y":0}},"i":{"R":{"f":[1,1,1,1,0],"r":0,"x":0,"y":0}},"j":{"R":{"f":[1,1,1,1,0],"r":30,"x":0,"y":0}},"k":{"R":{"f":[1,0,0,1,1],"r":15,"x":0,"y":0}},"l":{"R":{"f":[0,0,1,1,1],"r":-20,"x":0,"y":0}},"m":{"R":{"f":[0,0,0,0,1],"r":20,"x":0,"y":0}},"n":{"R":{"f":[1,0,0,1,1],"r":20,"x":0,"y":0}},"o":{"R":{"f":[0.6,0.6,0.6,0.6,0.6],"r":0,"x":0,"y":0}},"p":{"R":{"f":[1,0,1,1,1],"r":25,"x":0,"y":0}},"q":{"R":{"f":[0,0,1,1,1],"r":25,"x":0,"y":0}},"r":{"R":{"f":[1,0,0,1,1],"r":-10,"x":0,"y":0}},"s":{"R":{"f":[1,1,1,1,1],"r":15,"x":0,"y":0}},"t":{"R":{"f":[0,1,1,1,1],"r":-15,"x":0,"y":0}},"u":{"R":{"f":[1,0,0,1,1],"r":0,"x":0,"y":0}},"v":{"R":{"f":[1,0,0,1,1],"r":10,"x":0,"y":0}},"w":{"R":{"f":[0,0,0,0,1],"r":0,"x":0,"y":0}},"x":{"R":{"f":[1,0.5,1,1,1],"r":0,"x":0,"y":0}},"y":{"R":{"f":[0,1,1,1,0],"r":0,"x":0,"y":0}},"z":{"R":{"f":[1,0,1,1,1],"r":-15,"x":0,"y":0}}}},"words":{"ar":{"مرحبا":[{"R":{"f":[0,0,0,0,0],"r":-15,"x":10,"y":-60}},{"R":{"f":[0,0,0,0,0],"r":15,"x":10,"y":-60}}],"شكرا":[{"R":{"f":[0.2,0,0,0,0],"r":0,"x":0,"y":-70}},{"R":{"f":[0.2,0,0,0,0],"r":0,"x":15,"y":-40}}],"نعم":[{"R":{"f":[1,1,1,1,1],"r":0,"x":10,"y":-30}},{"R":{"f":[1,1,1,1,1],"r":20,"x":10,"y":-20}}],"لا":[{"R":{"f":[1,0,1,1,1],"r":-20,"x":10,"y":-40}},{"R":{"f":[1,0,1,1,1],"r":20,"x":10,"y":-40}}]},"en":{"hello":[{"R":{"f":[0,0,0,0,0],"r":-15,"x":10,"y":-60}},{"R":{"f":[0,0,0,0,0],"r":15,"x":10,"y":-60}}],"hi":[{"R":{"f":[0,0,0,0,0],"r":-15,"x":10,"y":-60}},{"R":{"f":[0,0,0,0,0],"r":15,"x":10,"y":-60}}],"thanks":[{"R":{"f":[0.2,0,0,0,0],"r":0,"x":0,"y":-70}},{"R":{"f":[0.2,0,0,0,0],"r":0,"x":15,"y":-40}}],"thank":[{"R":{"f":[0.2,0,0,0,0],"r":0,"x":0,"y":-70}},{"R":{"f":[0.2,0,0,0,0],"r":0,"x":15,"y":-40}}],"yes":[{"R":{"f":[1,1,1,1,1],"r":0,"x":10,"y":-30}},{"R":{"f":[1,1,1,1,1],"r":20,"x":10,"y":-20}}],"no":[{"R":{"f":[1,0,1,1,1],"r":-20,"x":10,"y":-40}},{"R":{"f":[1,0,1,1,1],"r":20,"x":10,"y":-40}}]}}};
+const STORE = "withus-sign-editor-v2";
+const clone = (o) => JSON.parse(JSON.stringify(o));
+const $ = (s) => document.querySelector(s);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const k in (attrs || {})) {
+    if (k === "class") e.className = attrs[k];
+    else if (k.startsWith("on")) e[k] = attrs[k];
+    else if (attrs[k] !== false && attrs[k] != null) e.setAttribute(k, attrs[k] === true ? "" : attrs[k]);
+  }
+  kids.flat().forEach((c) => e.append(c));
+  return e;
+}
+
+// ---------- البيانات ----------
+let data = (() => {
+  try {
+    const s = localStorage.getItem(STORE);
+    if (s) { const d = JSON.parse(s); if (d && d.letters && d.words && d.rest) return d; }
+  } catch (e) {}
+  return clone(DEFAULT);
+})();
+data.reviews = data.reviews || {};
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(data)); } catch (e) {} };
+
+const AR_LETTERS = Object.keys(DEFAULT.letters.ar);
+const EN_LETTERS = Object.keys(DEFAULT.letters.en);
+const FINGER_NAMES = ["الإبهام", "السبابة", "الوسطى", "البنصر", "الخنصر"];
+const SHAPE_NAMES = {
+  fist: "قبضة", open: "كف مفتوحة", point: "سبابة", V: "حرف V", L: "حرف L", thumb: "إبهام",
+  pinky: "خنصر", Y: "حرف Y", three: "ثلاثة", claw: "مخلب", O: "دائرة", flat: "كف مسطحة", hook: "خطاف", four: "أربعة"
+};
+const normAr = (t) => t.replace(/[ً-ٰٟـ]/g, "").replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").replace(/[ؤئ]/g, "ء");
+
+const sel = { lang: "ar", kind: "letter", key: "ا", idx: 0, hand: "R" };
+const reviewKey = () => `${sel.lang}:${sel.kind}:${sel.key}`;
+
+function entryFrames() {
+  if (sel.kind === "letter") {
+    const l = data.letters[sel.lang];
+    if (!l[sel.key]) l[sel.key] = { R: clone(data.rest) };
+    return [l[sel.key]];
+  }
+  const w = data.words[sel.lang];
+  if (!w[sel.key] || !w[sel.key].length) w[sel.key] = [{ R: clone(data.rest) }];
+  return w[sel.key];
+}
+function curFrame() {
+  const fr = entryFrames();
+  if (sel.idx >= fr.length) sel.idx = fr.length - 1;
+  return fr[sel.idx];
+}
+
+// ---------- الأفاتار (نفس محرك التطبيق) ----------
+const NS = "http://www.w3.org/2000/svg";
+const el = (n, a = {}, p) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+const FINGERS = [
+  {dx:-17,dy:6,len:[14,12],base:-35},{dx:-9,dy:-12,len:[18,14],base:0},{dx:-1,dy:-14,len:[20,15],base:0},
+  {dx:7,dy:-12,len:[18,14],base:0},{dx:14,dy:-8,len:[14,11],base:5}
+];
+function makeHand(parent, mirror) {
+  const mover = el("g", { class: "mover" }, el("g", {}, parent));
+  const flip = el("g", { transform: mirror ? "scale(-1,1)" : "" }, mover);
+  el("rect", { x:-20, y:-12, width:40, height:40, rx:14, class:"skin" }, flip);
+  const fingers = FINGERS.map((f) => {
+    const g1 = el("g", { class: "f1" }, flip);
+    el("rect", { x:-3.5, y:-f.len[0], width:7, height:f.len[0], rx:3.5, class:"skin" }, g1);
+    const g2 = el("g", { class: "f2" }, g1);
+    el("rect", { x:-3.2, y:-f.len[1], width:6.4, height:f.len[1], rx:3.2, class:"skin" }, g2);
+    return { g1, g2, base: f.base };
+  });
+  return { mover, fingers, mirror };
+}
+function setPose(hd, p, ox) {
+  const s = hd.mirror ? -1 : 1;
+  hd.mover.style.transform = `translate(${ox + p.x * s}px, ${90 + p.y}px) rotate(${p.r * s}deg)`;
+  hd.fingers.forEach((fg, i) => {
+    const c = p.f[i];
+    fg.g1.style.transform = `translate(${FINGERS[i].dx}px, ${FINGERS[i].dy}px) rotate(${fg.base + c * 70}deg)`;
+    fg.g2.style.transform = `translate(0px, ${-FINGERS[i].len[0]}px) rotate(${c * 85}deg)`;
+  });
+}
+const svg = el("svg", { viewBox: "0 0 240 185", role: "img", "aria-label": "معاينة الأفاتار" }, $("#stage"));
+const head = el("g", {}, svg);
+el("ellipse", { cx:120, cy:52, rx:36, ry:42, class:"skin" }, head);
+el("circle", { cx:107, cy:46, r:3.5, class:"eye" }, head);
+el("circle", { cx:133, cy:46, r:3.5, class:"eye" }, head);
+const mouthEl = el("path", { class: "face" }, head);
+const browEl = el("path", { class: "face" }, head);
+function setFace(f) {
+  const b = f && typeof f.brow === "number" ? f.brow : 0;
+  const m = f && typeof f.mouth === "number" ? f.mouth : 0.8;
+  browEl.setAttribute("d", `M100 ${34 - b * 8} Q120 ${22 - b * 10} 140 ${34 - b * 8}`);
+  mouthEl.setAttribute("d", `M108 68 Q120 ${68 + m * 10} 132 68`);
+}
+const layer = el("g", {}, svg);
+const handL = makeHand(layer, true), handR = makeHand(layer, false);
+function show(fr) {
+  setPose(handR, fr.R || data.rest, 160);
+  setPose(handL, fr.L || data.rest, 80);
+  setFace(fr.face);
+}
+const statusEl = $("#status");
+const preview = () => { show(curFrame()); };
+let token = 0;
+async function playFrames(frames, defMs) {
+  const my = ++token;
+  for (const fr of frames) {
+    if (my !== token) return;
+    show(fr);
+    statusEl.textContent = sel.key;
+    await sleep(fr.ms || defMs);
+  }
+  if (my === token) { show(curFrame()); statusEl.textContent = "جاهز"; }
+}
+
+// ---------- عناصر الواجهة ----------
+function seg(items, value, onPick) {
+  return items.map(([v, label]) => h("button", { type: "button", "aria-pressed": String(v === value), onclick: () => onPick(v) }, label));
+}
+function sliderRow(label, min, max, step, get, set) {
+  const out = h("output", {}, String(get()));
+  const input = h("input", { type: "range", min, max, step, value: get(), "aria-label": label });
+  input.oninput = () => { const v = Number(input.value); set(v); out.textContent = String(v); save(); preview(); };
+  return h("div", { class: "row" }, h("span", {}, label), input, out);
+}
+
+// ---------- اللوحات ----------
+function renderPicker() {
+  $("#langSeg").replaceChildren(...seg([["ar", "عربي"], ["en", "English"]], sel.lang, (v) => {
+    sel.lang = v; sel.idx = 0; sel.key = sel.kind === "letter" ? (v === "ar" ? AR_LETTERS[0] : EN_LETTERS[0]) : (Object.keys(data.words[v])[0] || ""); refresh();
+  }));
+  $("#kindSeg").replaceChildren(...seg([["letter", "حرف (هجاء إصبعي)"], ["word", "كلمة كاملة"]], sel.kind, (v) => {
+    sel.kind = v; sel.idx = 0;
+    sel.key = v === "letter" ? (sel.lang === "ar" ? AR_LETTERS[0] : EN_LETTERS[0]) : (Object.keys(data.words[sel.lang])[0] || "");
+    refresh();
+  }));
+  const p = $("#picker"); p.replaceChildren();
+  if (sel.kind === "letter") {
+    const list = sel.lang === "ar" ? AR_LETTERS : EN_LETTERS;
+    p.append(h("div", { class: "grid" }, list.map((ch) => {
+      const done = data.reviews[`${sel.lang}:letter:${ch}`]?.ok;
+      return h("button", { type: "button", class: done ? "done" : "", "aria-pressed": String(ch === sel.key), onclick: () => { sel.key = ch; sel.idx = 0; refresh(); } }, sel.lang === "en" ? ch.toUpperCase() : ch);
+    })));
+  } else {
+    const words = Object.keys(data.words[sel.lang]);
+    p.append(h("div", { class: "chips" }, words.map((w) => {
+      const done = data.reviews[`${sel.lang}:word:${w}`]?.ok;
+      return h("button", { type: "button", class: done ? "done" : "", "aria-pressed": String(w === sel.key), onclick: () => { sel.key = w; sel.idx = 0; refresh(); } }, w + (done ? " ✓" : ""));
+    })));
+    const inp = h("input", { type: "text", id: "newWord", placeholder: sel.lang === "ar" ? "كلمة جديدة" : "new word", autocomplete: "off", dir: sel.lang === "ar" ? "rtl" : "ltr" });
+    const add = h("button", { type: "button", class: "primary", onclick: () => {
+      const raw = inp.value.trim();
+      const k = sel.lang === "ar" ? normAr(raw).replace(/[^ء-ي]/g, "") : raw.toLowerCase().replace(/[^a-z]/g, "");
+      if (!k) { statusEl.textContent = "اكتب كلمة صحيحة"; return; }
+      if (!data.words[sel.lang][k]) data.words[sel.lang][k] = [{ R: clone(data.rest) }];
+      sel.key = k; sel.idx = 0; save(); refresh();
+    } }, "إضافة");
+    const del = h("button", { type: "button", class: "danger", disabled: !sel.key, onclick: () => {
+      if (del.dataset.arm !== "1") { del.dataset.arm = "1"; del.textContent = "اضغط مرة أخرى للحذف"; return; }
+      delete data.words[sel.lang][sel.key]; delete data.reviews[reviewKey()];
+      sel.key = Object.keys(data.words[sel.lang])[0] || ""; sel.idx = 0; save(); refresh();
+    } }, "حذف الكلمة المحددة");
+    p.append(h("div", { class: "two" }, inp, add), del);
+  }
+}
+
+function renderFrames() {
+  const box = $("#framesPanel"); box.replaceChildren();
+  if (!sel.key) { box.append(h("p", { class: "muted" }, "أضف كلمة لتبدأ.")); return; }
+  const frames = entryFrames();
+  box.append(h("h2", {}, sel.kind === "letter" ? `الحرف: ${sel.lang === "en" ? sel.key.toUpperCase() : sel.key}` : `الكلمة: ${sel.key}`));
+  if (sel.kind === "word") {
+    box.append(h("div", { class: "chips" }, frames.map((_, i) => h("button", { type: "button", "aria-pressed": String(i === sel.idx), onclick: () => { sel.idx = i; refresh(); } }, `إطار ${i + 1}`))));
+    box.append(h("div", { class: "two" },
+      h("button", { type: "button", onclick: () => { frames.splice(sel.idx + 1, 0, clone(curFrame())); sel.idx++; save(); refresh(); } }, "+ نسخ الإطار"),
+      h("button", { type: "button", class: "danger", disabled: frames.length < 2, onclick: () => { frames.splice(sel.idx, 1); sel.idx = Math.max(0, sel.idx - 1); save(); refresh(); } }, "حذف الإطار")
+    ));
+  }
+  const fr = curFrame();
+  const defMs = sel.kind === "letter" ? 520 : 650;
+  box.append(sliderRow("المدة (م.ث)", 150, 1500, 50, () => fr.ms || defMs, (v) => { fr.ms = v; }));
+  box.append(h("button", { type: "button", class: "primary", onclick: () => playFrames(sel.kind === "word" ? frames : [fr], defMs) }, "▶ تشغيل"));
+}
+
+function renderHands() {
+  const box = $("#handsPanel"); box.replaceChildren();
+  if (!sel.key) return;
+  const fr = curFrame();
+  box.append(h("h2", {}, "اليدان"));
+  box.append(h("div", { class: "seg" }, seg([["R", "اليمنى"], ["L", "اليسرى"]], sel.hand, (v) => { sel.hand = v; renderHands(); })));
+  if (sel.hand === "L") {
+    const cb = h("input", { type: "checkbox", id: "useLeft" });
+    cb.checked = !!fr.L;
+    cb.onchange = () => { if (cb.checked) fr.L = clone(fr.R || data.rest); else delete fr.L; save(); preview(); renderHands(); };
+    box.append(h("label", { class: "check", for: "useLeft" }, cb, "استعمال اليد اليسرى في هذا الإطار"));
+  }
+  const hand = fr[sel.hand];
+  if (!hand) { box.append(h("p", { class: "muted" }, "اليد اليسرى ساكنة في هذا الإطار.")); return; }
+  const preset = h("select", { id: "preset", "aria-label": "شكل جاهز" },
+    h("option", { value: "" }, "ابدأ من شكل جاهز…"),
+    Object.keys(SHAPES).map((k) => h("option", { value: k }, SHAPE_NAMES[k] || k)));
+  preset.onchange = () => { if (preset.value) { hand.f = SHAPES[preset.value].slice(); save(); preview(); renderHands(); } };
+  box.append(preset);
+  FINGER_NAMES.forEach((name, i) => box.append(sliderRow(name, 0, 1, 0.05, () => hand.f[i], (v) => { hand.f[i] = v; })));
+  box.append(sliderRow("الدوران", -90, 90, 1, () => hand.r, (v) => { hand.r = v; }));
+  box.append(sliderRow("أفقي", -80, 80, 1, () => hand.x, (v) => { hand.x = v; }));
+  box.append(sliderRow("رأسي", -100, 70, 1, () => hand.y, (v) => { hand.y = v; }));
+  box.append(h("p", { class: "muted" }, "0 = الإصبع ممدود، 1 = مثني. الرأسي: الأقل يرفع اليد نحو الوجه."));
+}
+
+function renderFace() {
+  const box = $("#facePanel"); box.replaceChildren();
+  if (!sel.key) return;
+  const fr = curFrame();
+  const ensure = () => { if (!fr.face) fr.face = { brow: 0, mouth: 0.8 }; return fr.face; };
+  box.append(h("h2", {}, "الوجه"));
+  box.append(sliderRow("الحاجبان", -1, 1, 0.1, () => (fr.face ? fr.face.brow : 0), (v) => { ensure().brow = v; }));
+  box.append(sliderRow("الفم", -1, 1, 0.1, () => (fr.face ? fr.face.mouth : 0.8), (v) => { ensure().mouth = v; }));
+  box.append(h("button", { type: "button", onclick: () => { delete fr.face; save(); preview(); renderFace(); } }, "إرجاع الوجه للوضع الطبيعي"));
+}
+
+function renderReview() {
+  const box = $("#reviewPanel"); box.replaceChildren();
+  if (!sel.key) return;
+  const k = reviewKey();
+  const r = data.reviews[k] || { ok: false, by: "" };
+  const cb = h("input", { type: "checkbox", id: "okBox" });
+  cb.checked = !!r.ok;
+  const by = h("input", { type: "text", id: "by", placeholder: "اسم المراجع (اختياري)", value: r.by || "", autocomplete: "off" });
+  const commit = () => {
+    if (cb.checked) data.reviews[k] = { ok: true, by: by.value.trim() }; else delete data.reviews[k];
+    save(); renderPicker(); renderExport();
+  };
+  cb.onchange = commit; by.onchange = commit;
+  box.append(h("h2", {}, "المراجعة"));
+  box.append(h("label", { class: "check", for: "okBox" }, cb, "راجع هذه الإشارة مترجم إشارة أو شخص أصم، وهي صحيحة"));
+  box.append(by);
+}
+
+function totals() {
+  let all = 0;
+  for (const l of ["ar", "en"]) { all += Object.keys(data.letters[l]).length + Object.keys(data.words[l]).length; }
+  const ok = Object.values(data.reviews).filter((x) => x.ok).length;
+  return { all, ok };
+}
+function exportJson() {
+  const t = totals();
+  const out = clone(data);
+  out.version = 2;
+  out.verified = t.all > 0 && t.ok >= t.all;
+  return JSON.stringify(out);
+}
+function renderExport() {
+  const box = $("#exportPanel"); box.replaceChildren();
+  const t = totals();
+  box.append(h("h2", {}, "التصدير والاستيراد"));
+  box.append(h("p", { class: "muted" }, `مراجَع ${t.ok} من ${t.all} إدخالاً.`));
+  if (t.ok < t.all) box.append(h("div", { class: "note" }, "ما لم يُراجَع ما زال تقريبياً. لا تنشر التطبيق على أنه دقيق قبل مراجعة كل الإدخالات."));
+  const out = h("textarea", { id: "out", readonly: true, "aria-label": "ملف الإشارات" });
+  out.value = exportJson();
+  const copy = h("button", { type: "button", class: "primary", onclick: async () => {
+    try { await navigator.clipboard.writeText(out.value); statusEl.textContent = "تم النسخ ✓"; }
+    catch (e) { out.focus(); out.select(); statusEl.textContent = "حدّد النص وانسخه يدوياً"; }
+  } }, "نسخ الملف");
+  box.append(out, copy);
+  const inp = h("textarea", { id: "inp", placeholder: "الصق هنا ملفاً سبق تصديره لتكمل العمل عليه", "aria-label": "استيراد" });
+  const imp = h("button", { type: "button", onclick: () => {
+    try {
+      const d = JSON.parse(inp.value);
+      if (!d || !d.letters || !d.words || !d.rest) throw new Error("bad");
+      d.reviews = d.reviews || {}; data = d; save(); sel.idx = 0; refresh(); statusEl.textContent = "تم الاستيراد ✓";
+    } catch (e) { statusEl.textContent = "الملف غير صالح"; }
+  } }, "استيراد");
+  const reset = h("button", { type: "button", class: "danger", onclick: () => {
+    if (reset.dataset.arm !== "1") { reset.dataset.arm = "1"; reset.textContent = "اضغط مرة أخرى لمسح كل تعديلاتك"; return; }
+    data = clone(DEFAULT); data.reviews = {}; save(); sel.lang = "ar"; sel.kind = "letter"; sel.key = AR_LETTERS[0]; sel.idx = 0; refresh();
+  } }, "العودة للقيم الأولية");
+  box.append(inp, h("div", { class: "two" }, imp, reset));
+}
+
+function refresh() {
+  renderPicker(); renderFrames(); renderHands(); renderFace(); renderReview(); renderExport(); preview();
+  if (!window.__started) statusEl.textContent = "جاهز";
+}
+window.__started = false;
+refresh();
+// أي تعديل على الإطار يحدّث نص التصدير
+document.addEventListener("input", (e) => {
+  if (e.target && e.target.type === "range") { const o = document.getElementById("out"); if (o) o.value = exportJson(); }
+});
+</script>
