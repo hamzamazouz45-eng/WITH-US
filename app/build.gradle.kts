@@ -15,6 +15,17 @@ android {
         versionName = "0.1.0"
     }
 
+    // مفتاح تصحيح ثابت: يجعل كل إصدار جديد يُثبَّت فوق السابق دون حذفه.
+    // (مفتاح تجريبي معروف، وليس سرياً ولا يصلح لنشر التطبيق في المتجر.)
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false

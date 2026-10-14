@@ -9,8 +9,8 @@
   #stage { flex: 1 1 auto; min-height: 0; }
   svg { width: 100%; height: 100%; display: block; }
   #label {
-    flex: 0 0 auto; text-align: center; color: #fff; font-weight: 700; font-size: 15px;
-    min-height: 22px; padding: 2px 4px 0; direction: rtl; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    flex: 0 0 auto; text-align: center; color: #fff; font-weight: 700; font-size: 13px;
+    min-height: 18px; padding: 0 4px 4px; direction: rtl; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .skin { fill: #e2ab82; stroke: #a8714a; stroke-width: 1.2; }
   .eye { fill: #2b2420; }
@@ -87,7 +87,7 @@ function setPose(h, p, ox) {
     fg.g2.style.transform = `translate(0px, ${-FINGERS[i].len[0]}px) rotate(${c * 85}deg)`;
   });
 }
-const svg = el("svg", { viewBox: "0 0 240 200", preserveAspectRatio: "xMidYMid meet" }, document.getElementById("stage"));
+const svg = el("svg", { viewBox: "0 0 240 185", preserveAspectRatio: "xMidYMid meet" }, document.getElementById("stage"));
 const head = el("g", {}, svg);
 el("ellipse", { cx:120, cy:52, rx:36, ry:42, class:"skin" }, head);
 el("circle", { cx:107, cy:46, r:3.5, class:"eye" }, head);

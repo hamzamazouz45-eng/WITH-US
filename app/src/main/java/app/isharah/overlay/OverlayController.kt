@@ -5,10 +5,14 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.WindowManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -16,64 +20,62 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import org.json.JSONObject
+import kotlin.math.abs
 
 /**
- * النافذة العائمة. تُرسم بنوع TYPE_ACCESSIBILITY_OVERLAY، وهو متاح لخدمة إمكانية الوصول
- * دون إذن "العرض فوق التطبيقات". الأفاتار نفسه صفحة HTML محلية داخل WebView.
+ * النافذة العائمة: مربع صغير شبه شفاف فيه الأفاتار فقط، وما حوله شفاف تماماً.
+ *  - إصبع واحد: سحب.  إصبعان: تكبير وتصغير.
+ *  - لمسة واحدة: تظهر أزرار (−  +  —) لثلاث ثوانٍ.
+ * تُرسم بنوع TYPE_ACCESSIBILITY_OVERLAY المتاح لخدمة إمكانية الوصول دون إذن "العرض فوق التطبيقات".
  */
 class OverlayController(private val service: AccessibilityService) {
 
     private val wm = service.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+    private val handler = Handler(Looper.getMainLooper())
     private val density = service.resources.displayMetrics.density
     private fun dp(v: Int) = (v * density).toInt()
+    private val screenW get() = service.resources.displayMetrics.widthPixels
+    private val screenH get() = service.resources.displayMetrics.heightPixels
 
-    private var root: LinearLayout? = null
+    private var root: FrameLayout? = null
     private var web: WebView? = null
-    private var frame: FrameLayout? = null
+    private var catcher: View? = null
+    private var bar: LinearLayout? = null
+    private var chip: TextView? = null
     private var params: WindowManager.LayoutParams? = null
 
     private var ready = false
     private val pending = ArrayList<String>()
-    private var widthDp = 200
+    private var sizePx = 0
+    private var restoreSizePx = 0
     private var collapsed = false
+
+    private val hideBar = Runnable { bar?.visibility = View.GONE }
 
     fun show() {
         if (root != null) return
+        sizePx = dp(170)
 
         val p = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            sizePx,
+            sizePx,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.START
+            // LEFT وليس START، حتى لا ينقلب الموضع في الواجهات العربية
+            gravity = Gravity.TOP or Gravity.LEFT
             x = dp(12)
             y = dp(140)
         }
         params = p
 
-        val r = LinearLayout(service).apply {
-            orientation = LinearLayout.VERTICAL
+        val r = FrameLayout(service).apply {
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
             background = GradientDrawable().apply {
-                setColor(0xE60F1A1C.toInt())
-                cornerRadius = dp(16).toFloat()
+                setColor(0x73101A1C)
+                cornerRadius = dp(14).toFloat()
             }
-            setPadding(dp(6), dp(4), dp(6), dp(6))
-        }
-
-        val grip = chip("⠿ " + service.getString(R.string.app_name), 13f).apply {
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            gravity = Gravity.CENTER_VERTICAL or Gravity.START
-        }
-        val sizeBtn = chip("⤢", 18f)
-        val minBtn = chip("—", 18f)
-        val bar = LinearLayout(service).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            addView(grip)
-            addView(sizeBtn)
-            addView(minBtn)
         }
 
         val w = WebView(service).apply {
@@ -92,37 +94,51 @@ class OverlayController(private val service: AccessibilityService) {
         }
         web = w
 
-        val catcher = View(service)
-        val f = FrameLayout(service).apply {
-            addView(w, FrameLayout.LayoutParams(dp(widthDp), dp(widthDp * 5 / 4)))
-            addView(catcher, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
-        }
-        frame = f
+        val c = View(service)
+        catcher = c
+        c.setOnTouchListener(Touch(allowScale = true) { showBarTemporarily() })
 
-        val drag = dragListener()
-        grip.setOnTouchListener(drag)
-        catcher.setOnTouchListener(drag)
-
-        sizeBtn.setOnClickListener {
-            widthDp = when (widthDp) { 200 -> 260; 260 -> 140; else -> 200 }
-            w.layoutParams = FrameLayout.LayoutParams(dp(widthDp), dp(widthDp * 5 / 4))
-            update()
+        val minus = barButton("−") { setSize((sizePx * 0.8f).toInt()); showBarTemporarily() }
+        val plus = barButton("+") { setSize((sizePx * 1.25f).toInt()); showBarTemporarily() }
+        val fold = barButton("—") { collapse() }
+        val b = LinearLayout(service).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            visibility = View.GONE
+            background = GradientDrawable().apply {
+                setColor(0xCC000000.toInt())
+                cornerRadius = dp(12).toFloat()
+            }
+            addView(minus)
+            addView(plus)
+            addView(fold)
         }
-        minBtn.setOnClickListener {
-            collapsed = !collapsed
-            f.visibility = if (collapsed) View.GONE else View.VISIBLE
-            minBtn.text = if (collapsed) "+" else "—"
-            update()
-        }
+        bar = b
 
-        r.addView(bar)
-        r.addView(f)
+        val ch = TextView(service).apply {
+            text = "🤟"
+            textSize = 22f
+            gravity = Gravity.CENTER
+            visibility = View.GONE
+            setOnTouchListener(Touch(allowScale = false) { expand() })
+        }
+        chip = ch
+
+        val match = FrameLayout.LayoutParams.MATCH_PARENT
+        r.addView(w, FrameLayout.LayoutParams(match, match))
+        r.addView(c, FrameLayout.LayoutParams(match, match))
+        r.addView(
+            b,
+            FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT)
+                .apply { gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL; topMargin = dp(4) }
+        )
+        r.addView(ch, FrameLayout.LayoutParams(match, match))
         root = r
 
         try {
             wm.addView(r, p)
         } catch (e: Exception) {
-            Log.e("Isharah", "addView failed", e)
+            Log.e("WithUs", "addView failed", e)
             root = null
         }
     }
@@ -137,14 +153,13 @@ class OverlayController(private val service: AccessibilityService) {
     fun sendHint(text: String) = send("window.onHint(${JSONObject.quote(text)})")
 
     fun hide() {
+        handler.removeCallbacks(hideBar)
         try {
             root?.let { wm.removeView(it) }
         } catch (_: Exception) {
         }
         web?.destroy()
-        root = null
-        web = null
-        frame = null
+        root = null; web = null; catcher = null; bar = null; chip = null
         ready = false
         pending.clear()
     }
@@ -163,35 +178,106 @@ class OverlayController(private val service: AccessibilityService) {
         }
     }
 
-    private fun chip(label: String, size: Float) = TextView(service).apply {
+    private fun setSize(px: Int) {
+        val p = params ?: return
+        val max = minOf(dp(380), (screenW * 0.95f).toInt())
+        sizePx = px.coerceIn(dp(90), max)
+        p.width = sizePx
+        p.height = sizePx
+        p.x = clampX(p.x)
+        p.y = clampY(p.y)
+        update()
+    }
+
+    private fun collapse() {
+        val p = params ?: return
+        collapsed = true
+        restoreSizePx = sizePx
+        web?.visibility = View.GONE
+        catcher?.visibility = View.GONE
+        bar?.visibility = View.GONE
+        chip?.visibility = View.VISIBLE
+        p.width = dp(44)
+        p.height = dp(44)
+        update()
+    }
+
+    private fun expand() {
+        collapsed = false
+        web?.visibility = View.VISIBLE
+        catcher?.visibility = View.VISIBLE
+        chip?.visibility = View.GONE
+        setSize(restoreSizePx)
+    }
+
+    private fun showBarTemporarily() {
+        if (collapsed) return
+        bar?.visibility = View.VISIBLE
+        handler.removeCallbacks(hideBar)
+        handler.postDelayed(hideBar, 3000)
+    }
+
+    private fun clampX(x: Int) = x.coerceIn(0, (screenW - (params?.width ?: 0)).coerceAtLeast(0))
+    private fun clampY(y: Int) = y.coerceIn(0, (screenH - (params?.height ?: 0)).coerceAtLeast(0))
+
+    private fun barButton(label: String, onClick: () -> Unit) = TextView(service).apply {
         text = label
-        textSize = size
+        textSize = 20f
         setTextColor(Color.WHITE)
         gravity = Gravity.CENTER
         minWidth = dp(40)
         minHeight = dp(36)
-        setPadding(dp(6), 0, dp(6), 0)
+        setOnClickListener { onClick() }
     }
 
-    private fun dragListener(): View.OnTouchListener {
-        var startX = 0
-        var startY = 0
-        var downX = 0f
-        var downY = 0f
-        return View.OnTouchListener { _, ev ->
-            val p = params ?: return@OnTouchListener false
+    /** إصبع واحد يسحب، إصبعان يكبّران ويصغّران، ولمسة سريعة تستدعي onTap. */
+    private inner class Touch(
+        private val allowScale: Boolean,
+        private val onTap: () -> Unit
+    ) : View.OnTouchListener {
+        private val slop = ViewConfiguration.get(service).scaledTouchSlop
+        private var startX = 0
+        private var startY = 0
+        private var downX = 0f
+        private var downY = 0f
+        private var moved = false
+        private var multi = false
+
+        private val scaler = ScaleGestureDetector(
+            service,
+            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                override fun onScale(detector: ScaleGestureDetector): Boolean {
+                    setSize((sizePx * detector.scaleFactor).toInt())
+                    return true
+                }
+            }
+        )
+
+        override fun onTouch(v: View, ev: MotionEvent): Boolean {
+            val p = params ?: return false
+            if (allowScale) scaler.onTouchEvent(ev)
             when (ev.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     startX = p.x; startY = p.y
                     downX = ev.rawX; downY = ev.rawY
+                    moved = false; multi = false
                 }
-                MotionEvent.ACTION_MOVE -> {
-                    p.x = (startX + (ev.rawX - downX)).toInt().coerceAtLeast(0)
-                    p.y = (startY + (ev.rawY - downY)).toInt().coerceAtLeast(0)
-                    update()
+                MotionEvent.ACTION_POINTER_DOWN -> {
+                    multi = true; moved = true
                 }
+                MotionEvent.ACTION_MOVE -> if (!multi) {
+                    val dx = ev.rawX - downX
+                    val dy = ev.rawY - downY
+                    if (!moved && (abs(dx) > slop || abs(dy) > slop)) moved = true
+                    if (moved) {
+                        p.x = clampX(startX + dx.toInt())
+                        p.y = clampY(startY + dy.toInt())
+                        update()
+                    }
+                }
+                MotionEvent.ACTION_UP -> if (!moved && !multi) onTap()
             }
-            true
+            return true
         }
     }
 }
